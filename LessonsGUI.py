@@ -96,19 +96,24 @@ class SimulatorGUI:
         tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment).pack(side="left", padx=5)
         tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="left")
 
-    def start_simulation(self):
-        print("Start Simulation button clicked")
-    
+
+
+    def initialize_files(self):
+        
+        print("Load files button pressed")
         IOHelper = IOSetup() #Create instance of Setup class
         IOStatus = IOHelper.InitializeIO() #Initialize output header and lookup tables
         
-        if IOStatus == 1:
-            self.log_message("toml and setup loaded")
+        if IOStatus == (1,1):
+            self.log_message("toml files loaded")
             
-            
-        if IOStatus == 0:
+        if IOStatus != (1,1):
 
-            self.log_message("ERR: toml or setup failed")
+            self.log_message("ERR: toml setup failed")
+            
+    def start_simulation(self):
+        print("Start Simulation button clicked")
+    
         
 
     def stop_simulation(self):
@@ -267,18 +272,31 @@ class IOSetup:
         self.block_Lookup = []
         self.lesson_Lookup = []
         
+        self.initialized = False
+        
+    def GetPilots(self):
+        return self.pilot_Lookup;
+    
+    def GetBlocks(self):
+        return self.block_Lookup
+    def GetLessons(self):
+        return self.lesson_Lookup
+    
     def InitializeIO(self):
         """
         Imports required config files
         
         Returns
         -------
-         Returns status and list of pilots, lessons, and blocks.
+         Returns two status items
         """
+        lesson_status = self._ImportLessonToml()
+        param_status = self._ImportParameterToml()
         
-        return 1 if self._ImportParameterToml() else 0
+        if lesson_status and param_status == 1:   
+            self.initialized = True
         
-     
+        return lesson_status, param_status
         
     
     def _ImportParameterToml(self):
@@ -369,8 +387,12 @@ class IOSetup:
     
 def main():
     """Creates the main Tkinter window and runs the application."""
+    
     root = tk.Tk()
     app = SimulatorGUI(root)
+    
+    app.initialize_files()
+    
     root.mainloop()
 
 if __name__ == "__main__":
