@@ -1,0 +1,35 @@
+[lessonconfig]
+
+pilots = [
+  "ALPHA01",
+  "BRAVO02",
+  "CHARLIE03",
+  "DELTA04" ,
+  "ECHO05",
+  "FOXTROT06",
+  "GOLF07",
+  "HOTEL08",
+  "INDIA09",
+  "JULIET10",
+]
+
+blocks = [
+    "A",
+    "B",
+    "C",
+]
+
+lessons = [
+  "A-L01",
+  "A-L02",
+  "A-L03",
+  "A-L04",
+  "B-L05",
+  "B-L06",
+  "B-L07",
+  "B-L08",
+  "C-L09",
+  "C-L10",
+  "C-L11",
+  "C-L12",
+]

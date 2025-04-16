@@ -11,6 +11,8 @@ from tkinter import ttk
 import datetime
 import tomli
 import collections
+import csv
+import os 
 
 class SimulatorGUI:
     """
@@ -95,9 +97,19 @@ class SimulatorGUI:
         tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="left")
 
     def start_simulation(self):
-        """Placeholder for start simulation functionality."""
-        self.log_message("Simulation started.")
         print("Start Simulation button clicked")
+    
+        IOHelper = IOSetup() #Create instance of Setup class
+        IOStatus = IOHelper.InitializeIO() #Initialize output header and lookup tables
+        
+        if IOStatus == 1:
+            self.log_message("toml and setup loaded")
+            
+            
+        if IOStatus == 0:
+
+            self.log_message("ERR: toml or setup failed")
+        
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
@@ -245,53 +257,116 @@ class GRPCControl:
     
 class IOSetup:
     """
-        Class defines input and output functions for the setup script
+        Still need to input pilot and block information
     """
-
-    def InitializeOutput():
+    
+    def __init__ (self):
+        self.dataParameter_Lookup = {}
+        self.blankOutputFileHeader = {}
+        self.pilot_Lookup = []
+        self.block_Lookup = []
+        self.lesson_Lookup = []
+        
+    def InitializeIO(self):
         """
-         Take in toml file from file system and create a list of stateIDs and a list of 
-         data parameters that will be used to write data to
+        Imports required config files
         
-         Returns
-         -------
-         
-         Returns lookup list, data params
+        Returns
+        -------
+         Returns status and list of pilots, lessons, and blocks.
+        """
         
-         """
-        # outputDict
-         #outputFileVarDescriptions
-        global outputFile
-        #global stdscr
-        global toml_dict
-        global currentAircraft
+        return 1 if self._ImportParameterToml() else 0
         
-        outputVars = {}
-        toml = open("config.toml", "rb")
-        toml_dict = tomli.load(toml)['outputvariables']
+     
         
-        for value in toml_dict:
-            if (isinstance(toml_dict[value],str) == False): 
-                currentItem = toml_dict[value]
-                current_description = currentItem['description']
-                current_stateID = currentItem
-                outputVars[value] = None #Set up initial dictionary for outputting data to excel
-                outputFileVarDescriptions[value] = current_description #Get descriptions for each variable from the toml file
-                
-            if (isinstance(toml_dict[value],str) == True):
-                
-                if (value == "aircraft_type"):
-                    currentAircraft = toml_dict[value]
-                    outputVars[value] = toml_dict[value]
-                    outputFileVarDescriptions["aircraft_type"] = currentAircraft
+    
+    def _ImportParameterToml(self):
+        """
+        Private function that imports the toml config for parameters from loft sim
+
+        Returns
+        -------
+        1 if successful, 0 if not successful
+
+        """
+        try: 
+            dirname = os.path.abspath(os.getcwd())
+            filename = dirname + '\\config\\parameterconfig.toml'
+            toml = open(filename, "rb")
+            
+            toml_dict = tomli.load(toml)['outputvariables']
+            
+            for value in toml_dict:
+                if (isinstance(toml_dict[value],str) == False): 
+                    currentItem = toml_dict[value]
+                    current_description = currentItem['description']
+                    current_stateID = currentItem["state_id"]
+                    self.dataParameter_Lookup[current_stateID] = value
+                    self.blankOutputFileHeader[value] = current_description 
                     
-                if (value == "Datetime"):
-                    outputVars[value] = toml_dict[value]
+                if (isinstance(toml_dict[value],str) == True):
                     
-        outputDict = collections.OrderedDict.fromkeys(outputVars)
+                    if (value == "aircraft_type"):
+                        currentAircraft = toml_dict[value]
+                       # outputVars[value] = toml_dict[value]
+                        self.blankOutputFileHeader["aircraft_type"] = currentAircraft
+                        self.dataParameter_Lookup["aircraft_type"] = currentAircraft
+                    if (value == "Datetime"):
+                       # outputVars[value] = toml_dict[value]
+                        self.blankOutputFileHeader["Datetime"] = None #outputVars[value]
+            return 1
+        except: 
+            return 0
         
-        return outputDict
+    def _ImportLessonToml(self):
+        """
+        Private function that imports the lesson toml config for parameters from loft sim
+
+        Returns
+        -------
+        1 if successful, 0 if not successful
+
+        """
+        try: 
+            dirname = os.path.abspath(os.getcwd())
+            filename = dirname + '\\config\\lessonconfig.toml'
+            toml = open(filename, "rb")
+            
+            toml_dict = tomli.load(toml)['lessonconfig']
+            
+            for value in toml_dict:
+                if value == "pilots": 
+                    for i in toml_dict[value]:
+                        self.pilot_Lookup.append(i) #add each pilot to the lookup table
+                        
+                if value == "blocks": 
+                    for i in toml_dict[value]:
+                        self.block_Lookup.append(i) #add each pilot to the lookup table
+                 
+                if value == "lessons": 
+                    for i in toml_dict[value]:
+                        self.lesson_Lookup.append(i) #add each pilot to the lookup table
+                     
+            return 1
+        except: 
+            return 0
         
+    def _CreateFile(self):
+        
+        currentAircraft = self.dataParameter_Lookup["aircraft_type"]
+        now = datetime.datetime.now()
+        current_time = now.strftime('%H:%M:%S.%f')[:-3]
+        
+        fileName =  f"{currentAircraft}_{current_time}.csv"
+        outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
+        
+        
+        writer = csv.DictWriter(outputFile, fieldnames=outputVars)
+        writer.writeheader()
+        writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+        
+    
 def main():
     """Creates the main Tkinter window and runs the application."""
     root = tk.Tk()
