@@ -1,0 +1,102 @@
+title = "Loft Dynamics Config"
+
+[outputvariables]
+# StateName = {Variable, # of digits to round to, description that shows up on second line of data file}
+# If no precision value, default will be used
+
+aircraft_type = "r22"
+
+Datetime = "" #DO NOT EDIT THIS LINE
+
+Aerofly_Out_Simulation_Time =  { state_id = 3871827618, description = "Simulation time from start (s)"}
+Aerofly_Out_Aircraft_Latitude =  { state_id = 2496586604, description = "Latitude (rad) (double)"} 
+Aerofly_Out_Aircraft_Longitude =  { state_id = 1666704728, description = "Longitude (rad) (double)"} 
+Aerofly_Out_Aircraft_Altitude =  { state_id = 1847367549, description = "gpsAltitude (m) (double)"}
+Aerofly_Out_Aircraft_TrueAltitude =  { state_id = 513685691, description = "Absolute altitude (m) (double)"}
+Aerofly_Out_Aircraft_MagneticHeading =  { state_id = 117182271, description = "Magnetic Heading (rad) (double)"} 
+Aerofly_Out_Aircraft_TrueHeading =  { state_id = 1553784294, description = "True heading (rad) (double)"} 
+Aerofly_Out_Aircraft_Pitch =  { state_id = 2074986628, description = "Pitch (rad) (double)"}
+Aerofly_Out_Aircraft_Bank =  { state_id = 1501357761, description = "Bank (rad) (double)"} 
+Aerofly_Out_Aircraft_GroundSpeed =  { state_id = 1049691088, description = "Groundspeed (m/s) (double)"} 
+Aerofly_Out_Aircraft_GroundTrack =  { state_id = 3881043328, description = "Ground track (rad) (double)"} 
+Aerofly_Out_Instrument_IndicatedAirspeed =  { state_id = 614270119, description = "Indicated airspeed (m/s) (double)"}
+Aerofly_Out_Aircraft_TrueAirspeed =  { state_id = 1308053202, description = "True airspeed (m/s) (double)"} 
+Aerofly_Out_Aircraft_VerticalSpeed =  { state_id = 4247030081, description = "Vertical Speed (m/s) (double)"} 
+Aerofly_Out_Instrument_PressureAltitude =  { state_id = 637219977, description = "Pressure Altitude (Pa) (double)"} 
+Aerofly_Out_Aircraft_AirTemperature =  { state_id = 2142867155, description = " Air Temp (K) (double)"} 
+Aerofly_Out_Aircraft_Crashed =  { state_id = 518160218, description = " Aircraft Crashed (None)"} 
+Aerofly_Out_Aircraft_FuelMass =  { state_id = 4054750327, description = " (kg) (double)"} 
+CLS_U  =  { state_id = 1984892607, description = "Control Positions: Roll Pitch Pedals Collective Throttle (rad) (double5)"} 
+Aerofly_Out_Aircraft_Height =  { state_id = 3771464240, description = " Aircraft Height AGL (m) (double)"} 
+Aerofly_Out_Aircraft_HeightCargo =  { state_id = 1901182077, description = " (Pa)"} 
+Aerofly_Out_Aircraft_HeightLoad =  { state_id = 1162389881, description =  "  (m) (double)"} 
+Aerofly_Out_Aircraft_Hydraulics_MainLinePressure =  { state_id = 4021288050, description =  "  (Pa) (double)"} 
+Aerofly_Out_Aircraft_Hydraulics_MainRotorServo0Pressure =  { state_id = 2716830861, description =  "  (Pa) (double)"} 
+Aerofly_Out_Aircraft_Hydraulics_MainRotorServo1Pressure =  { state_id = 3063191758, description =  "  (Pa) (double)"} 
+Aerofly_Out_Aircraft_Hydraulics_MainRotorServo2Pressure =  { state_id = 2400822283, description =  "  (Pa) (double)"} 
+Aerofly_Out_Aircraft_Hydraulics_TailRotorActuatorPressure =  { state_id = 1909389254, description =  "  (Pa) (double)"} 
+Aerofly_Out_Aircraft_OnGround =  { state_id = 1931956084, description =  "  (None) (bool)"} 
+Aerofly_Out_Aircraft_RawAirTemperature =  { state_id = 4056189073, description =  "  (°) (double)"} 
+Aerofly_Out_Aircraft_Universialtime =  { state_id = 1095517217, description =  "  (s) (double)"} 
+Aerofly_Out_Aircraft_Velocity =  { state_id = 1796138214, description =  " Aircraft body velocity p,q,r (m/s) (double3)"} 
+Aerofly_Out_Aircraft_Vortex =  { state_id = 3066527403, description =  "  (0-1) (double)"} 
+Aerofly_Out_Crash_ExcessiveLandingRate =  { state_id = 3606674210, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_ExcessiveLoadFactor =  { state_id = 2176349777, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_FirstLimitExceeded =  { state_id = 1440247258, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_HighAirspeed =  { state_id = 3845500168, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_HighRotorSpeed =  { state_id = 2936800735, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_LowRotorSpeed =  { state_id = 4028988999, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_SlingLoadExcessiveGroundSpeed =  { state_id = 1088936463, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_SlingLoadExcessiveLandingRate =  { state_id = 289709335, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_UpsetPitchAttitudeAirborne =  { state_id = 2009533588, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_UpsetPitchAttitudeGround =  { state_id = 1949388887, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_UpsetRollAttitudeAirborne =  { state_id = 855358880, description =  "  (None) (bool)"} 
+Aerofly_Out_Crash_UpsetRollAttitudeGround =  { state_id = 4202393567, description =  "  (None) (bool)"} 
+Aerofly_Out_Instrument_CarburetorTemperature =  { state_id = 1059500221, description =  "  (°) (double)"} 
+Aerofly_Out_Instrument_EngineTorqueFraction =  { state_id = 2876656444, description =  "  (0-1) (double)"} 
+Aerofly_Out_Instrument_FuelFlow =  { state_id = 2370500633, description =  "  (kg/s) (double)"} 
+Aerofly_Out_Instrument_GeneratorContactorCurrent =  { state_id = 3599019297, description =  "  (A) (double)"} 
+Aerofly_Out_PressureSettingPilot =  { state_id = 3297162888, description =  "  (Pa) (double)"} 
+Aerofly_Out_Simulation_Fps =  { state_id = 3590140009, description =  "  (fps) (double)"} 
+Aerofly_Out_Simulation_NavigationCycle =  { state_id = 482521778, description =  "  (None) (double)"} 
+Aerofly_Out_Simulation_Pause =  { state_id = 3917330120, description =  "  (None) (bool)"} 
+Aerofly_Out_Simulation_SelectedTriangles =  { state_id = 1450782446, description =  "  (no-value) (double)"} 
+Avionics_GTN650_Out_ComActive =  { state_id = 3495780893, description =  "  (MHz) (double)"} 
+Avionics_GTN650_Out_ComStandby =  { state_id = 330000888, description =  "  (MHz) (double)"} 
+Avionics_GTN650_Out_ComVolume =  { state_id = 584668097, description =  "  (%) (double)"} 
+Avionics_GTN650_Out_NavActive =  { state_id = 1363238732, description =  "  (MHz) (double)"} 
+Avionics_GTN650_Out_NavStandby =  { state_id = 256251047, description =  "  (MHz) (double)"} 
+Avionics_GTN650_Out_NavVolume =  { state_id = 2747625104, description =  "  (%) (double)"} 
+Avionics_GTN650_Out_Squelch =  { state_id = 2441534798, description =  "  (None) (bool)"} 
+Avionics_GTN650_Out_VLOCorGPS =  { state_id = 2318747298, description =  "  (None) (bool)"} 
+Aerofly_Out_Aircraft_RotorRotationSpeed = {state_id = 943710121, description = " (rad/sec) (double)"}
+Aerofly_Out_Instrument_EngineNR = {state_id = 1324901455, description = " (0-1) (double)"}
+Aerofly_Out_Instrument_EngineNP = {state_id = 2700477795, description = " (0-1) (double)"}
+Aerofly_Out_Aircraft_EngineRotationSpeed = {state_id = 119573989, description = " (rad/s) (double)"}
+Aerofly_Out_Instrument_EngineRotationSpeed = {state_id = 382300902,description = " (rad/s) (double)"}
+Aerofly_Out_Aircraft_Acceleration = {state_id = 3207956524, description = " (m/s^2) (double3)"}
+Aerofly_Out_Aircraft_AngularVelocity = {state_id = 3502630583, description = " (m/s^2) (double3)"}
+Aerofly_Out_Aircraft_AngleOfAttack = {state_id = 2769157819, description = " (rad) (double)"}
+Aerofly_Out_Aircraft_SideSlip = {state_id = 855504072, description = " (rad) (double)"}
+Aerofly_In_Weather_Wind_Direction = {state_id = 1255318390, description = " (rad) (double)"}
+Aerofly_In_Weather_Wind_Speed = {state_id = 1935586962, description = " (m/s) (double)"}
+Aerofly_In_Weather_Wind_VerticalSpeed = {state_id = 4042791190, description = " (m/s) (double)"}
+Aerofly_In_Aircraft_WindshearX = {state_id = 1359970420, description = " (None) (double)"}
+Aerofly_In_Aircraft_WindShearY = {state_id = 638103778, description = " (None) (double)"}
+Aerofly_In_Aircraft_WindShearZ = {state_id = 3204571480, description = " (None) (double)"}
+Ios_FlightAssistance_ClimbRate_Enabled = {state_id = 3928845979, description = " (None) (bool)"}
+Ios_FlightAssistance_ForwardSpeed_Enabled = {state_id = 3933014103, description = " (None) (bool)"}
+Ios_FlightAssistance_Pedals_Enabled = {state_id = 731865654, description = " (None) (bool)"}
+Ios_FlightAssistance_SideSpeed_Enabled = {state_id = 156875280, description = " (None) (bool)"}
+Ios_FlightAssistance_Throttle_Enabled = {state_id = 1089322549, description = " (None) (bool)"}
+Ios_Weight_Cargo = {state_id = 2961967842, description = " (kg) (double)"}
+Ios_Weight_Fuel = {state_id = 3981973171, description = " (kg) (double)"}
+Ios_Weight_LHSideCargo = {state_id = 78440813, description = " (kg) (double)"}
+Ios_Weight_Passenger_Front = {state_id = 3557043199, description = " (kg) (double)"}
+Ios_Weight_Passenger_Back1 = {state_id = 301190512, description = " (kg) (double)"}
+Ios_Weight_Passenger_Back2 = {state_id = 2298125514, description = " (kg) (double)"}
+Ios_Weight_Passenger_Back3 = {state_id = 4294814812, description = " (kg) (double)"}
+Ios_Weight_Passenger_Back4 = {state_id = 1637431807, description = " (kg) (double)"}
+Ios_Weight_Pilot = {state_id = 108790465, description = " (kg) (double)"}
+Ios_Weight_RearCargo = {state_id = 289510901, description = " (kg) (double)"}
+Ios_Weight_RHSideCargo = {state_id = 4163634848, description = " (kg) (double)"}
