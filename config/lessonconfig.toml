@@ -17,6 +17,10 @@ blocks = [
     "A",
     "B",
     "C",
+    "D",
+    "AA",
+    "AB",
+    "AC",
 ]
 
 lessons = [

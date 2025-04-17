@@ -26,11 +26,21 @@ class SimulatorGUI:
         Args:
             master: The root Tkinter window.
         """
+        self.pilot_Lookup = [] #these are going to store the lookup tables imported from the IOHelper class/toml configs
+        self.block_Lookup = []
+        self.lesson_Lookup = []
+        
+        self.pilotCombo = None #These will store the combo boxes to be updated after files are initialized
+        self.blockCombo = None
+        self.lessonCombo = None
+        
+        self.IOHelper = IOHelper() #instance of IOhelper class
+        
         self.master = master
         master.title("Simulator Session Data Recording")
         master.geometry("800x550")
         master.configure(bg="lightgray")
-
+        
         self.create_widgets()
 
     def create_widgets(self):
@@ -50,13 +60,18 @@ class SimulatorGUI:
         left_frame.place(x=20, y=80)
 
         tk.Label(left_frame, text="Pilot:").grid(row=0, column=0, sticky="w")
-        ttk.Combobox(left_frame, values=["Pilot 1", "Pilot 2"], width=15).grid(row=0, column=1, pady=2)
-
+        self.pilotCombo = ttk.Combobox(left_frame, values=self.pilot_Lookup, width=15)
+        self.pilotCombo.grid(row=0, column=1, pady=2)
+        
         tk.Label(left_frame, text="Block:").grid(row=1, column=0, sticky="w")
-        ttk.Combobox(left_frame, values=["Block 1", "Block 2"], width=15).grid(row=1, column=1, pady=2)
+        
+        self.blockCombo = ttk.Combobox(left_frame, values=self.block_Lookup, width=15)
+        self.blockCombo.grid(row=1, column=1, pady=2)
 
         tk.Label(left_frame, text="Lesson:").grid(row=2, column=0, sticky="w")
-        ttk.Combobox(left_frame, values=["Lesson 1", "Lesson 2"], width=15).grid(row=2, column=1, pady=2)
+        
+        self.lessonCombo = ttk.Combobox(left_frame, values=self.lesson_Lookup, width=15)
+        self.lessonCombo.grid(row=2, column=1, pady=2)
 
         # Recorder status
         status_frame = tk.Frame(self.master, bg="white", bd=1, relief="solid")
@@ -71,7 +86,6 @@ class SimulatorGUI:
         log_frame.place(x=250, y=190, width=300, height=120)
         tk.Label(log_frame, text="Recorder Log:", anchor="w").pack(fill="x")
         self.log_text = tk.Text(log_frame, height=5, wrap="word")
-       # self.log_text.insert("end", "• Simulation Start: XXhXXminXXs\n• XX Maneuver Start at XXhXXminXXs\n• XX Maneuver Stop at XXhXXminXXs")
         self.log_text.pack(fill="both", expand=True)
 
         # Maneuver controls
@@ -100,21 +114,47 @@ class SimulatorGUI:
 
     def initialize_files(self):
         
-        print("Load files button pressed")
-        IOHelper = IOSetup() #Create instance of Setup class
-        IOStatus = IOHelper.InitializeIO() #Initialize output header and lookup tables
+        print("Load files")
+        #Create instance of Setup class
         
-        if IOStatus == (1,1):
+        IOStatus1, IOStatus2 = self.IOHelper.InitializeParameters() #Initialize output header and lookup tables
+        
+        self.pilot_Lookup = self.IOHelper.pilot_Lookup
+        self.block_Lookup = self.IOHelper.block_Lookup
+        self.lesson_Lookup = self.IOHelper.lesson_Lookup
+        
+        if (IOStatus1,IOStatus2) == (1,1):
             self.log_message("toml files loaded")
+            self.update_combobox()
             
-        if IOStatus != (1,1):
+        if (IOStatus1,IOStatus2) != (1,1):
 
             self.log_message("ERR: toml setup failed")
-            
+    
+    def update_combobox(self):
+        self.pilotCombo["values"] = self.pilot_Lookup
+        self.blockCombo["values"] = self.block_Lookup
+        self.lessonCombo["values"] = self.lesson_Lookup
+        
     def start_simulation(self):
         print("Start Simulation button clicked")
-    
         
+        
+        
+        pilotSelected = self.pilotCombo.get()
+        blockSelected = self.blockCombo.get()
+        lessonSelected = self.lessonCombo.get()
+        
+        print(f"pilot selected: {pilotSelected} ")
+        file = self.IOHelper.CreateOutputFile(pilotSelected, blockSelected, lessonSelected)
+        
+        grpc = GRPCControl(file, self.IOHelper.blankOutputFileHeader)
+ 
+        grpc.ConnectClient()
+        
+        grpc.SubscribeData()
+        
+        #print(type(self.pilot_Lookup))
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
@@ -125,6 +165,8 @@ class SimulatorGUI:
         """Placeholder for start maneuver functionality."""
         self.log_message("Maneuver started.")
         print("Start Maneuver button clicked")
+        
+        
 
     def stop_maneuver(self):
         """Placeholder for stop maneuver functionality."""
@@ -160,8 +202,8 @@ class GRPCControl:
     """
     """
     
-    def __init__(self):
-        self.host = '192.168.168.11'
+    def __init__(self, file, header):
+        self.host = '127.0.0.1'
         self.server_port = 5011
 
         # instantiate a channel
@@ -169,13 +211,18 @@ class GRPCControl:
             '{}:{}'.format(self.host, self.server_port))
         # bind the client and the server
         self.stub = pb2_grpc.StateStoreStub(self.channel)
-        self.outputDict = {}
-    
+       
+        self.fileOutput = file #file created and passed from IOSetup class
+        self.fileHeader = header #header for file created and passed form IOSetup class
+        
+            
+        #print("outputdict "  + self.outputDict['Aerofly_Out_Aircraft_MagneticHeading'])
+        
     def ConnectClient(self) -> None:
         
         global client, sub_request
         #client = Client()
-        stateIDs = []
+        stateIDs = [1234568,123456987]
         
         sub_request = pb2.SubscribeStatesRequest(state_ids=stateIDs,
                                           notify_empty_change_sets = True,
@@ -186,29 +233,98 @@ class GRPCControl:
         subscribe_response = self.stub.SubscribeStates(sub_request)
         
         
-    def SubscribeDate(self):
-        self.outputDict = {}
+    def SubscribeData(self):
+        
+       #need new instance of output dict here
+        
+        IOHelperInstance = IOHelper() #functions for reading/writing sub state
+        
         subscribe_response = self.stub.SubscribeStates(sub_request)
         
         now = datetime.datetime.now()
         current_time = now.strftime('%H:%M:%S.%f')[:-3]
         
-        outputDict["Datetime"] = str(current_time)
           #  Each return_value should be StateValue
           #  And each StateValue should have state ID and an union of value
-          # Populate dictionary values each loop and write out to the file using dictwriter. Close file after stop button pressed
-        value_array = reply.values
+        for reply in subscribe_response:
+            value_array = reply.values
+            print(value_array)
+         
+                
+       
+    
+class IOHelper:
+    """
+        Still need to input pilot and block information
+    """
+    
+    def __init__ (self):
+        self.dataParameter_Lookup = {}
+        self.blankOutputFileHeader = {}
+        self.pilot_Lookup = []
+        self.block_Lookup = []
+        self.lesson_Lookup = []
+        
+        self.initialized = False
+        self.writer = None
+        
+        self.simPaused = False
+        
+        self.outputDict = {key: '' for key in self.blankOutputFileHeader} #create blank output dictionary for processing replies from server
+
+        
+    def GetPilots(self):
+        return self.pilot_Lookup;
+    
+    def GetBlocks(self):
+        return self.block_Lookup
+    def GetLessons(self):
+        return self.lesson_Lookup
+    
+    def InitializeParameters(self):
+        """
+        Imports required config files 
+        
+        Returns
+        -------
+         Returns two status items. One for each config toml
+        """
+        lesson_status = self._ImportLessonToml()
+        param_status = self._ImportParameterToml()
+        
+        if lesson_status and param_status == 1:   
+            self.initialized = True
+            #file = self._CreateFile(self.blankOutputFileHeader)
+            return lesson_status, param_status
+        
+        return lesson_status, param_status
+    
+    def ProcessGRPC(self, value_array) -> dict:
+        """
+        Will take in value array from dict and return a dict of formatted values
+
+        Parameters
+        ----------
+        valuearray : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        dict
+            DESCRIPTION.
+
+        """
+        outputDict_copy = self.outputDict.copy()
+        
         for value in value_array:        
      
             recieveVal = ""
             
             message_value = getattr(value, value.WhichOneof('value'))
-            
             valueDataType = value.WhichOneof('value')
 
             state_id = value.state_id
-            vartempName = STATEID_LOOKUP[state_id]
-            variablePrecision = VARIABLE_PRECISION[vartempName] #Get lookup from variable precision table. # to round to
+            #vartempName = self.dataParameter_Lookup[state_id]
             
              #This is only if notprimative
             if ((valueDataType != "boolean_value") and (valueDataType != "int32_value") and (valueDataType != "double_value") and (valueDataType != "string_value") ):
@@ -234,70 +350,23 @@ class GRPCControl:
              
                     index += 1
                 
-                variableName = STATEID_LOOKUP[state_id] #find name of variable from lookup table
-                outputDict[variableName] = recieveVal
+                variableName = self.dataParameter_Lookup[state_id] #find name of variable from lookup table
+                outputDict_copy[variableName] = recieveVal
              
             else:
-                variableName = STATEID_LOOKUP[state_id] #find name of variable from lookup table
+                variableName = self.dataParameter_Lookup[state_id] 
 
-               
-                precisionVal = VARIABLE_PRECISION[variableName]
-               
-                if precisionVal != "default": #if no precision val found in toml, we set to "default" when loading in   
-                    #print(precisionVal)
-                    roundedVal = round(message_value, precisionVal)
-                    outputDict[variableName] = roundedVal
-                elif precisionVal == "default":
-                    outputDict[variableName] = message_value
+                outputDict_copy[variableName] = message_value
                 
-                #print(variableName)
                 if (variableName == "Aerofly_Out_Simulation_Pause" and str(message_value) == "True"): #will set simpause to true to prevent recorded paused data
-                    simPaused = True
+                    self.simPaused = True
                 if (variableName == "Aerofly_Out_Simulation_Pause" and str(message_value) == "False"):
-                    simPaused = False
+                    self.simPaused = False
                 
-                if (simPaused == False and threadFlag != 0 ): #This is where we will write to the file after each message has been processed
-
-                    writer.writerow(outputDict)
-    
-class IOSetup:
-    """
-        Still need to input pilot and block information
-    """
-    
-    def __init__ (self):
-        self.dataParameter_Lookup = {}
-        self.blankOutputFileHeader = {}
-        self.pilot_Lookup = []
-        self.block_Lookup = []
-        self.lesson_Lookup = []
-        
-        self.initialized = False
-        
-    def GetPilots(self):
-        return self.pilot_Lookup;
-    
-    def GetBlocks(self):
-        return self.block_Lookup
-    def GetLessons(self):
-        return self.lesson_Lookup
-    
-    def InitializeIO(self):
-        """
-        Imports required config files
-        
-        Returns
-        -------
-         Returns two status items
-        """
-        lesson_status = self._ImportLessonToml()
-        param_status = self._ImportParameterToml()
-        
-        if lesson_status and param_status == 1:   
-            self.initialized = True
-        
-        return lesson_status, param_status
-        
+                if (self.simPaused == False): #This is where we will write to the file after each message has been processed
+                    print("sim not paused writing lines")
+                    
+       
     
     def _ImportParameterToml(self):
         """
@@ -370,7 +439,25 @@ class IOSetup:
         except: 
             return 0
         
+    def CreateOutputFile(self, pilot:str, block:str, lesson:str) -> object:
+        
+        print("Placeholder for cretefile")
+        currentAircraft = self.dataParameter_Lookup["aircraft_type"]
+        now = datetime.datetime.now()
+        current_time = now.strftime('%H.%M.%S.%f')[:-3]
+        
+        fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
+        outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
+        
+        
+        writer = csv.DictWriter(outputFile, fieldnames=self.blankOutputFileHeader)
+        writer.writeheader()
+        
+        return outputFile
+        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
     def _CreateFile(self):
+        
+    
         
         currentAircraft = self.dataParameter_Lookup["aircraft_type"]
         now = datetime.datetime.now()
@@ -380,11 +467,13 @@ class IOSetup:
         outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
         
         
-        writer = csv.DictWriter(outputFile, fieldnames=outputVars)
-        writer.writeheader()
-        writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+        self.writer = csv.DictWriter(outputFile, fieldnames=self.blankOutputFileHeader)
+        self.writer.writeheader()
         
-    
+        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+        
+        
+   
 def main():
     """Creates the main Tkinter window and runs the application."""
     
@@ -392,7 +481,7 @@ def main():
     app = SimulatorGUI(root)
     
     app.initialize_files()
-    
+
     root.mainloop()
 
 if __name__ == "__main__":
