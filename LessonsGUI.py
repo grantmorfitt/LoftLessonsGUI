@@ -13,6 +13,7 @@ import tomli
 import collections
 import csv
 import os 
+from threading import Thread
 
 class SimulatorGUI:
     """
@@ -40,6 +41,8 @@ class SimulatorGUI:
         master.title("Simulator Session Data Recording")
         master.geometry("800x550")
         master.configure(bg="lightgray")
+        
+        self.grpc_thread = None
         
         self.create_widgets()
 
@@ -148,18 +151,21 @@ class SimulatorGUI:
         print(f"pilot selected: {pilotSelected} ")
         file = self.IOHelper.CreateOutputFile(pilotSelected, blockSelected, lessonSelected)
         
-        grpc = GRPCControl(file, self.IOHelper.blankOutputFileHeader)
+        grpc = GRPCControl(file, self.IOHelper)
  
         grpc.ConnectClient()
         
         #grpc.SubscribeData()
-        
+        self.grpc_thread = Thread(target = grpc.SubscribeData) #Start data capture on seperate thread
+        self.grpc_thread.start()
    
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
         self.log_message("Simulation stopped.")
         print("Stop Simulation button clicked")
+        self.grpc_thread.stop()
+        
 
     def start_maneuver(self):
         """Placeholder for start maneuver functionality."""
@@ -202,18 +208,19 @@ class GRPCControl:
     """
     """
     
-    def __init__(self, file, header):
+    def __init__(self, file, IOHelperInstance):
+        
         self.host = '127.0.0.1'
         self.server_port = 5011
-
         # instantiate a channel
         self.channel = grpc.insecure_channel(
             '{}:{}'.format(self.host, self.server_port))
         # bind the client and the server
         self.stub = pb2_grpc.StateStoreStub(self.channel)
        
+        self.IOHelper = IOHelperInstance
         self.fileOutput = file #file created and passed from IOSetup class
-        self.fileHeader = header #header for file created and passed form IOSetup class
+        self.fileHeader = self.IOHelper.blankOutputFileHeader #header for file created and passed form IOSetup class
         
             
         #print("outputdict "  + self.outputDict['Aerofly_Out_Aircraft_MagneticHeading'])
@@ -237,8 +244,6 @@ class GRPCControl:
         
        #need new instance of output dict here
         
-        IOHelperInstance = IOHelper() #functions for reading/writing sub state
-        
         subscribe_response = self.stub.SubscribeStates(sub_request)
         
         now = datetime.datetime.now()
@@ -248,8 +253,8 @@ class GRPCControl:
           #  And each StateValue should have state ID and an union of value
         for reply in subscribe_response:
             value_array = reply.values
-            processedDict = IOHelperInstance.ProcessGRPC(value_array)
-            #WRITE LINE HERE IOHELPER.WRITELINE
+            processedDict = self.IOHelper.ProcessGRPC(value_array)
+            self.IOHelper.WriteOutputLine(processedDict)
                 
        
     
@@ -266,12 +271,12 @@ class IOHelper:
         self.lesson_Lookup = []
         
         self.initialized = False
-        self.writer = None
         
         self.simPaused = False
         
         self.outputDict = {key: '' for key in self.blankOutputFileHeader} #create blank output dictionary for processing replies from server
         self.outputFile = None
+        self.writer = None
         
     def GetPilots(self):
         return self.pilot_Lookup;
@@ -490,14 +495,14 @@ class IOHelper:
         self.outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
         
         
-        writer = csv.DictWriter(self.outputFile, fieldnames=self.blankOutputFileHeader)
-        writer.writeheader()
+        self.writer = csv.DictWriter(self.outputFile, fieldnames=self.blankOutputFileHeader)
+        self.writer.writeheader()
         
     
-    def WriteOutputLine(self):
+    def WriteOutputLine(self, dataLine: dict):
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
         print("writing dat line")
-        
+        self.writer.writerow((dataLine))
    
 def main():
     """Creates the main Tkinter window and runs the application."""

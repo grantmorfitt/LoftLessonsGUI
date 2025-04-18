@@ -17,6 +17,7 @@ import csv
 import curses
 import time
 import tomli
+import thread
 
 STATEID_LOOKUP = {}
 
