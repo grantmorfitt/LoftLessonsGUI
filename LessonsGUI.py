@@ -152,9 +152,9 @@ class SimulatorGUI:
  
         grpc.ConnectClient()
         
-        grpc.SubscribeData()
+        #grpc.SubscribeData()
         
-        #print(type(self.pilot_Lookup))
+   
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
@@ -222,7 +222,7 @@ class GRPCControl:
         
         global client, sub_request
         #client = Client()
-        stateIDs = [1234568,123456987]
+        stateIDs = [4294814812]
         
         sub_request = pb2.SubscribeStatesRequest(state_ids=stateIDs,
                                           notify_empty_change_sets = True,
@@ -248,8 +248,8 @@ class GRPCControl:
           #  And each StateValue should have state ID and an union of value
         for reply in subscribe_response:
             value_array = reply.values
-            print(value_array)
-         
+            processedDict = IOHelperInstance.ProcessGRPC(value_array)
+            #WRITE LINE HERE IOHELPER.WRITELINE
                 
        
     
@@ -271,7 +271,7 @@ class IOHelper:
         self.simPaused = False
         
         self.outputDict = {key: '' for key in self.blankOutputFileHeader} #create blank output dictionary for processing replies from server
-
+        self.outputFile = None
         
     def GetPilots(self):
         return self.pilot_Lookup;
@@ -324,6 +324,7 @@ class IOHelper:
             valueDataType = value.WhichOneof('value')
 
             state_id = value.state_id
+            print(f" STATEID:{state_id}")
             #vartempName = self.dataParameter_Lookup[state_id]
             
              #This is only if notprimative
@@ -350,8 +351,13 @@ class IOHelper:
              
                     index += 1
                 
-                variableName = self.dataParameter_Lookup[state_id] #find name of variable from lookup table
-                outputDict_copy[variableName] = recieveVal
+                if state_id in self.dataParameter_Lookup:
+                    variableName = self.dataParameter_Lookup[state_id]
+                    outputDict_copy[variableName] = recieveVal  # or message_value
+                else:
+                    print(f"[WARNING] Unknown state_id received: {state_id}")
+                #variableName = self.dataParameter_Lookup[state_id] #find name of variable from lookup table
+                #outputDict_copy[variableName] = recieveVal
              
             else:
                 variableName = self.dataParameter_Lookup[state_id] 
@@ -365,8 +371,9 @@ class IOHelper:
                 
                 if (self.simPaused == False): #This is where we will write to the file after each message has been processed
                     print("sim not paused writing lines")
-                    
-       
+                    print(variableName)
+        return outputDict_copy
+        
     
     def _ImportParameterToml(self):
         """
@@ -471,7 +478,25 @@ class IOHelper:
         self.writer.writeheader()
         
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+    
+    def CreateOutputFile(self, pilot:str, block:str, lesson:str):
         
+        print("Placeholder for cretefile")
+        currentAircraft = self.dataParameter_Lookup["aircraft_type"]
+        now = datetime.datetime.now()
+        current_time = now.strftime('%H.%M.%S.%f')[:-3]
+        
+        fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
+        self.outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
+        
+        
+        writer = csv.DictWriter(self.outputFile, fieldnames=self.blankOutputFileHeader)
+        writer.writeheader()
+        
+    
+    def WriteOutputLine(self):
+        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+        print("writing dat line")
         
    
 def main():
