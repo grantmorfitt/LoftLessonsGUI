@@ -14,6 +14,7 @@ import collections
 import csv
 import os 
 from threading import Thread
+import threading
 
 class SimulatorGUI:
     """
@@ -35,14 +36,16 @@ class SimulatorGUI:
         self.blockCombo = None
         self.lessonCombo = None
         
+        self.grpcControl = None
         self.IOHelper = IOHelper() #instance of IOhelper class
+        self.stop_event = threading.Event() #event to stop thread recording data
+        self.recorder_thread = None
         
         self.master = master
         master.title("Simulator Session Data Recording")
         master.geometry("800x550")
         master.configure(bg="lightgray")
         
-        self.grpc_thread = None
         
         self.create_widgets()
 
@@ -140,9 +143,8 @@ class SimulatorGUI:
         self.lessonCombo["values"] = self.lesson_Lookup
         
     def start_simulation(self):
-        print("Start Simulation button clicked")
         
-        
+        self.log_message("Simulation started")        
         
         pilotSelected = self.pilotCombo.get()
         blockSelected = self.blockCombo.get()
@@ -151,21 +153,25 @@ class SimulatorGUI:
         print(f"pilot selected: {pilotSelected} ")
         file = self.IOHelper.CreateOutputFile(pilotSelected, blockSelected, lessonSelected)
         
-        grpc = GRPCControl(file, self.IOHelper)
+        self.grpcControl = GRPCControl(file, self.IOHelper)
  
-        grpc.ConnectClient()
+        self.grpcControl.ConnectClient()
         
-        #grpc.SubscribeData()
-        self.grpc_thread = Thread(target = grpc.SubscribeData) #Start data capture on seperate thread
-        self.grpc_thread.start()
-   
+        self.recorder_thread = threading.Thread(target=self.grpcControl.SubscribeData, args=(self.stop_event,))
+        self.recorder_thread.start()
+        
+
+
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
-        self.log_message("Simulation stopped.")
-        print("Stop Simulation button clicked")
-        self.grpc_thread.stop()
+        self.log_message("Simulation stopped")
+        self.grpcControl.StopDataCapture()
         
+        self.stop_event.set();
+        self.recorder_thread.join()
+        
+        self.IOHelper.CloseFile()
 
     def start_maneuver(self):
         """Placeholder for start maneuver functionality."""
@@ -221,7 +227,7 @@ class GRPCControl:
         self.IOHelper = IOHelperInstance
         self.fileOutput = file #file created and passed from IOSetup class
         self.fileHeader = self.IOHelper.blankOutputFileHeader #header for file created and passed form IOSetup class
-        
+        self.subscribe_response = None
             
         #print("outputdict "  + self.outputDict['Aerofly_Out_Aircraft_MagneticHeading'])
         
@@ -229,33 +235,37 @@ class GRPCControl:
         
         global client, sub_request
         #client = Client()
-        stateIDs = [4294814812]
-        
+        stateIDs = self.IOHelper.GetStateIDs() #pull stateids from list
         sub_request = pb2.SubscribeStatesRequest(state_ids=stateIDs,
                                           notify_empty_change_sets = True,
                                           notify_unchanged = True,
                                           minimum_notification_interval_ms = 16)
     
-    def StartDataCapture(self):
-        subscribe_response = self.stub.SubscribeStates(sub_request)
         
+    def StopDataCapture(self):
+        self.subscribe_response.cancel()
         
-    def SubscribeData(self):
+    def SubscribeData(self, stop_event):
         
        #need new instance of output dict here
         
-        subscribe_response = self.stub.SubscribeStates(sub_request)
-        
+        #subscribe_response = self.stub.SubscribeStates(sub_request)
+        self.subscribe_response = self.stub.SubscribeStates(sub_request)
         now = datetime.datetime.now()
         current_time = now.strftime('%H:%M:%S.%f')[:-3]
         
           #  Each return_value should be StateValue
           #  And each StateValue should have state ID and an union of value
-        for reply in subscribe_response:
-            value_array = reply.values
-            processedDict = self.IOHelper.ProcessGRPC(value_array)
-            self.IOHelper.WriteOutputLine(processedDict)
-                
+         
+        while not stop_event.is_set():
+            try:
+                for reply in self.subscribe_response:
+                    
+                    value_array = reply.values
+                    processedDict = self.IOHelper.ProcessGRPC(value_array)
+                    self.IOHelper.WriteOutputLine(processedDict)
+            except:
+                pass
        
     
 class IOHelper:
@@ -283,8 +293,14 @@ class IOHelper:
     
     def GetBlocks(self):
         return self.block_Lookup
+    
     def GetLessons(self):
         return self.lesson_Lookup
+    
+    def GetStateIDs(self):
+        
+        paramlist = list(self.dataParameter_Lookup.keys())
+        return [item for item in paramlist if isinstance(item, int)]
     
     def InitializeParameters(self):
         """
@@ -504,6 +520,9 @@ class IOHelper:
         print("writing dat line")
         self.writer.writerow((dataLine))
    
+    def CloseFile(self):
+        self.outputFile.close()
+        
 def main():
     """Creates the main Tkinter window and runs the application."""
     
