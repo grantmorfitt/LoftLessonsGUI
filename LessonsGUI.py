@@ -15,6 +15,7 @@ import csv
 import os 
 from threading import Thread
 import threading
+from queue import Queue
 
 class SimulatorGUI:
     """
@@ -38,10 +39,14 @@ class SimulatorGUI:
         
         self.recordingStatus = None
         
+        self.startButton = None
+        self.stopButton = None
+        
         self.grpcControl = None
         self.IOHelper = IOHelper() #instance of IOhelper class
         self.stop_event = threading.Event() #event to stop thread recording data
         self.recorder_thread = None
+        
         
         self.master = master
         master.title("Simulator Session Data Recording")
@@ -60,8 +65,12 @@ class SimulatorGUI:
         sim_frame = tk.Frame(self.master, bg="lightgray")
         sim_frame.pack()
 
-        tk.Button(sim_frame, text="Start Simulation", bg="green", fg="white", width=20, command=self.start_simulation).pack(pady=2)
-        tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, command=self.stop_simulation).pack(pady=2)
+        self.startButton = tk.Button(sim_frame, text="Start Simulation", bg="green", fg="white", width=20, command=self.start_simulation)
+        self.startButton.pack(pady=2)
+        
+        self.stopButton = tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, command=self.stop_simulation)
+        self.stopButton.pack(pady=2)
+        self.stopButton['state'] = 'disable'
 
         # Left panel: Pilot, Block, Lesson
         left_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
@@ -118,7 +127,7 @@ class SimulatorGUI:
         comment_entry.pack(side="left", padx=5)
 
         tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment).pack(side="left", padx=5)
-        tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="left")
+        tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="right")
 
 
 
@@ -166,7 +175,8 @@ class SimulatorGUI:
         
         self.recordingStatus['text'] = "Recording"
         self.recordingStatus['fg'] = "green"
-
+        self.stopButton['state'] = 'active'
+        self.startButton['state'] = 'disabled'
 
 
     def stop_simulation(self):
@@ -181,7 +191,9 @@ class SimulatorGUI:
         self.recorder_thread.join()
         
         self.IOHelper.CloseFile()
-
+        
+        self.stopButton['state'] = 'disabled'
+        self.startButton['state'] = 'active'
         
     def start_maneuver(self):
         """Placeholder for start maneuver functionality."""
@@ -203,7 +215,8 @@ class SimulatorGUI:
     def add_timestamp_to_comment(self):
         """Placeholder for adding timestamp to the comment."""
         print("Time button clicked")
-
+        self.IOHelper.que.put("comment in da queue")
+        
 
 
     
@@ -274,6 +287,7 @@ class GRPCControl:
                     value_array = reply.values
                     processedDict = self.IOHelper.ProcessGRPC(value_array)
                     self.IOHelper.WriteOutputLine(processedDict)
+                    
             except:
                 pass
        
@@ -297,6 +311,9 @@ class IOHelper:
         self.outputDict = {key: '' for key in self.blankOutputFileHeader} #create blank output dictionary for processing replies from server
         self.outputFile = None
         self.writer = None
+        
+        self.que = Queue() #make a quene for comments/manuever info. Only one instance of this class is called
+                            #so this queue will be checked when writing rows
         
     def GetPilots(self):
         return self.pilot_Lookup;
@@ -493,20 +510,20 @@ class IOHelper:
         
         return outputFile
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
-    def _CreateFile(self):
+    #def _CreateFile(self):
         
     
         
-        currentAircraft = self.dataParameter_Lookup["aircraft_type"]
-        now = datetime.datetime.now()
-        current_time = now.strftime('%H:%M:%S.%f')[:-3]
+        # currentAircraft = self.dataParameter_Lookup["aircraft_type"]
+        # now = datetime.datetime.now()
+        # current_time = now.strftime('%H:%M:%S.%f')[:-3]
         
-        fileName =  f"{currentAircraft}_{current_time}.csv"
-        outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
+        # fileName =  f"{currentAircraft}_{current_time}.csv"
+        # outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
         
         
-        self.writer = csv.DictWriter(outputFile, fieldnames=self.blankOutputFileHeader)
-        self.writer.writeheader()
+        # self.writer = csv.DictWriter(outputFile, fieldnames=self.blankOutputFileHeader)
+        # self.writer.writeheader()
         
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
     
@@ -527,7 +544,21 @@ class IOHelper:
     
     def WriteOutputLine(self, dataLine: dict):
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
-        #print("writing dat line")
+        
+        #need to check queue and if something is in it, add it to a comments line
+
+        #print(self.que)
+        
+        if not self.que.empty(): 
+            queData = self.que.get()
+            print(f"data from que: {queData}")
+            
+            dataLine['comments'] = queData
+            
+        if self.que.empty():
+            dataLine['comments'] = ""
+            
+        
         self.writer.writerow((dataLine))
    
     def CloseFile(self):
