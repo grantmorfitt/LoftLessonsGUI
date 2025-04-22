@@ -43,6 +43,12 @@ class SimulatorGUI:
         
         self.startButton = None
         self.stopButton = None
+        self.timeButton = None
+        
+        self.maneuverStopbtn = None
+        self.maneuverStartbtn = None
+        self.maneuverCancelbtn = None
+        
         self.commentEntry = None
         self.timeLabel = None
         self.grpcControl = None
@@ -58,6 +64,8 @@ class SimulatorGUI:
         
         
         self.create_widgets()
+        self.initialize_files()
+        self.log_message("Select Parameters to Continue")
 
     def create_widgets(self):
         """Creates and arranges the widgets for the GUI."""
@@ -70,6 +78,7 @@ class SimulatorGUI:
 
         self.startButton = tk.Button(sim_frame, text="Start Simulation", bg="green", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.start_simulation)
         self.startButton.pack(pady=2)
+        self.startButton['state'] = 'disable'
         
         self.stopButton = tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.stop_simulation)
         self.stopButton.pack(pady=2)
@@ -82,61 +91,63 @@ class SimulatorGUI:
         tk.Label(left_frame, text="Pilot:").grid(row=0, column=0, sticky="w")
         self.pilotCombo = ttk.Combobox(left_frame, values=self.pilot_Lookup, width=15)
         self.pilotCombo.grid(row=0, column=1, pady=2)
+        self.pilotCombo.bind("<<ComboboxSelected>>", self.checkcombobox)
         
         tk.Label(left_frame, text="Block:").grid(row=1, column=0, sticky="w")
-        
         self.blockCombo = ttk.Combobox(left_frame, values=self.block_Lookup, width=15)
         self.blockCombo.grid(row=1, column=1, pady=2)
+        self.blockCombo.bind("<<ComboboxSelected>>", self.checkcombobox)
 
-        tk.Label(left_frame, text="Lesson:").grid(row=2, column=0, sticky="w")
-        
+        tk.Label(left_frame, text="Lesson:").grid(row=2, column=0, sticky="w")        
         self.lessonCombo = ttk.Combobox(left_frame, values=self.lesson_Lookup, width=15)
         self.lessonCombo.grid(row=2, column=1, pady=2)
+        self.lessonCombo.bind("<<ComboboxSelected>>", self.checkcombobox) #trace will callback check function
         
         maneuver_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
         maneuver_frame.place(x=580, y=80, width=200, height=250)
         tk.Label(maneuver_frame, text="Maneuver:").pack(anchor="w")
         
-        self.maneuverCombo = ttk.Combobox(maneuver_frame, values=["Maneuver 1", "Maneuver 2"], width=20)
+        self.maneuverCombo = ttk.Combobox(maneuver_frame, values=[""], width=20)
         self.maneuverCombo.pack(pady=5)
 
         # Recorder status
         status_frame = tk.Frame(self.master, bg="white", bd=1, relief="solid")
-        status_frame.place(x=250, y=160, width=300, height=30)
+        status_frame.place(x=215, y=160, width=350, height=30)
         tk.Label(status_frame, text="Recorder Status: ", bg="white").pack(side="left")
         
         self.recordingStatus = tk.Label(status_frame, text="Not Recording", fg="red", bg="white")
         self.recordingStatus.pack(side="left")
 
-
-
         # Recorder log
         log_frame = tk.Frame(self.master, bd=1, relief="solid")
-        log_frame.place(x=250, y=190, width=300, height=120)
+        log_frame.place(x=215, y=190, width=350, height=250)
         tk.Label(log_frame, text="Recorder Log:", anchor="w").pack(fill="x")
         self.log_text = tk.Text(log_frame, height=5, wrap="word")
         self.log_text.pack(fill="both", expand=True)
 
         # Maneuver controls
-        
-
-        
-
-        tk.Button(maneuver_frame, text="Start Maneuver", bg="green", fg="white", width=20, command=self.start_maneuver).pack(pady=2)
-        tk.Button(maneuver_frame, text="Stop Maneuver", bg="red", fg="white", width=20, command=self.stop_maneuver).pack(pady=2)
-        tk.Button(maneuver_frame, text="Cancel\nManeuver", bg="orange", fg="white", width=20, height=2, command=self.cancel_maneuver).pack(pady=2)
-
+        self.maneuverStartbtn = tk.Button(maneuver_frame, text="Start Maneuver", bg="green", fg="white", width=20, command=self.start_maneuver)
+        self.maneuverStartbtn.pack(pady=2)
+        self.maneuverStartbtn['state'] = 'disabled'
+        self.maneuverStopbtn = tk.Button(maneuver_frame, text="Stop Maneuver", bg="red", fg="white", width=20, command=self.stop_maneuver)
+        self.maneuverStopbtn.pack(pady=2)
+        self.maneuverStopbtn['state'] = 'disabled'
+        self.maneuverCancelbtn = tk.Button(maneuver_frame, text="Cancel\nManeuver", bg="orange", fg="white", width=20, height=2, command=self.cancel_maneuver)
+        self.maneuverCancelbtn.pack(pady=2)
+        self.maneuverCancelbtn['state'] = 'disabled'
         # Comment section
         comment_frame = tk.Frame(self.master, bd=1, relief="solid", padx=10, pady=5)
         comment_frame.pack(side="bottom", fill="x", padx=10, pady=10)
 
         tk.Label(comment_frame, text="Comment:").pack(side="left")
         
-        self.commentEntry = comment_entry = tk.Entry(comment_frame, width=70)
+        #self.commentEntry = comment_entry = tk.Entry(comment_frame, width=70)
+        self.commentEntry = comment_entry = tk.Text(comment_frame, width = 55, height = 4)
         comment_entry.pack(side="left", padx=5)
 
         tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="right")
-        tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment).pack(side="right", padx=5)
+        self.timeButton = tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment)
+        self.timeButton.pack(side="right", padx=5)
 
     
         self.timeLabel = tk.Label(comment_frame, text="HH:MM:SS")
@@ -167,10 +178,31 @@ class SimulatorGUI:
         self.blockCombo["values"] = self.block_Lookup
         self.lessonCombo["values"] = self.lesson_Lookup
         self.maneuverCombo["values"] = self.maneuver_Lookup
+    
+    def checkcombobox(self, *_):
+        """
+        Check that all combo boxes are filled before enabling the start button
+
+        Parameters
+        ----------
+        *_ : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        if self.pilotCombo.get() and self.blockCombo.get() and self.lessonCombo.get():
+            self.startButton['state'] = 'normal'
+        else:
+            print ("not all boxes are selected, womp womp")
+            
         
     def start_simulation(self):
         
-        self.log_message("Simulation started")        
+        self.log_message("Simulation started")
         
         pilotSelected = self.pilotCombo.get()
         blockSelected = self.blockCombo.get()
@@ -188,9 +220,10 @@ class SimulatorGUI:
         
         self.recordingStatus['text'] = "Recording"
         self.recordingStatus['fg'] = "green"
-        self.stopButton['state'] = 'active'
+        self.stopButton['state'] = 'normal'
         self.startButton['state'] = 'disabled'
-
+        self.maneuverStartbtn['state'] = 'normal'
+        
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
@@ -205,11 +238,18 @@ class SimulatorGUI:
         
         self.IOHelper.CloseFile()
         
+        self.maneuverStartbtn['state'] = 'disabled'
+        self.maneuverStopbtn['state'] = 'disabled'
+        self.maneuverCancelbtn['state'] = 'disabled'
         self.stopButton['state'] = 'disabled'
-        self.startButton['state'] = 'active'
+        self.startButton['state'] = 'normal'
         
     def start_maneuver(self):
 
+        self.maneuverStartbtn['state'] = 'disabled'
+        self.maneuverStopbtn['state'] = 'normal'
+        self.maneuverCancelbtn['state'] = 'normal'
+        
         maneuver_comment = f"START_{self.maneuverCombo.get()}"
         self.log_message(maneuver_comment)
      
@@ -218,6 +258,10 @@ class SimulatorGUI:
 
     def stop_maneuver(self):
 
+        self.maneuverStartbtn['state'] = 'normal'
+        self.maneuverStopbtn['state'] = 'disabled'
+        self.maneuverCancelbtn['state'] = 'disabled'
+        
         maneuver_comment = f"STOP_{self.maneuverCombo.get()}"
         self.log_message(maneuver_comment)
      
@@ -226,6 +270,10 @@ class SimulatorGUI:
 
     def cancel_maneuver(self):
 
+        self.maneuverStartbtn['state'] = 'normal'
+        self.maneuverStopbtn['state'] = 'disabled'
+        self.maneuverCancelbtn['state'] = 'disabled'
+        
         maneuver_comment = f"CANCEL_{self.maneuverCombo.get()}"
         self.log_message(maneuver_comment)
      
@@ -239,19 +287,22 @@ class SimulatorGUI:
         current_time = now.strftime('%H:%M:%S')
         
         self.timeLabel['text'] = current_time
+        self.timeButton['state'] = 'disabled'
     
     def submit_comment(self):
         """Placeholder for submitting the comment."""
         print("Submit button clicked")
         
         time = self.timeLabel['text']
-        comment = f"COMMENT_{time} {self.commentEntry.get()}"
+        commentText = self.commentEntry.get("1.0", "end-1c")
+        comment = f"COMMENT_{time} {commentText}"
         
         self.IOHelper.que.put(comment)
         self.log_message(comment)
-
-        #self.commentEntry.delete(0, tk.END)
-        #self.timeLabel['text'] = "HH:MM:SS"
+        
+        self.commentEntry.delete("1.0", tk.END)
+        self.timeLabel['text'] = "HH:MM:SS"
+        self.timeButton['state'] = 'normal'
         
     def log_message(self, message):
         """Appends a message to the recorder log."""
@@ -585,7 +636,7 @@ def main():
     root = tk.Tk()
     app = SimulatorGUI(root)
     
-    app.initialize_files()
+    #app.initialize_files()
 
     root.mainloop()
 
