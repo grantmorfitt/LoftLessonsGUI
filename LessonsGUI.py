@@ -53,7 +53,7 @@ class SimulatorGUI:
         self.timeLabel = None
         self.grpcControl = None
         self.IOHelper = IOHelper() #instance of IOhelper class
-        self.stop_event = threading.Event() #event to stop thread recording data
+        self.stop_event = None
         self.recorder_thread = None
         
         
@@ -202,6 +202,7 @@ class SimulatorGUI:
         
     def start_simulation(self):
         
+        self.stop_event = threading.Event() #event to stop thread recording data
         self.log_message("Simulation started")
         
         pilotSelected = self.pilotCombo.get()
@@ -231,18 +232,22 @@ class SimulatorGUI:
         self.recordingStatus['text'] = "Not Recording"
         self.recordingStatus['fg'] = "red"
         
+        self.stop_event.set()
         self.grpcControl.StopDataCapture()
         
-        self.stop_event.set()
+        
         self.recorder_thread.join()
         
         self.IOHelper.CloseFile()
+        self.stop_event = None
         
         self.maneuverStartbtn['state'] = 'disabled'
         self.maneuverStopbtn['state'] = 'disabled'
         self.maneuverCancelbtn['state'] = 'disabled'
         self.stopButton['state'] = 'disabled'
         self.startButton['state'] = 'normal'
+        
+        del self.grpcControl
         
     def start_maneuver(self):
 
@@ -348,6 +353,7 @@ class GRPCControl:
     def StopDataCapture(self):
         self.subscribe_response.cancel()
         
+        
     def SubscribeData(self, stop_event):
         
        #need new instance of output dict here
@@ -360,10 +366,11 @@ class GRPCControl:
           #  Each return_value should be StateValue
           #  And each StateValue should have state ID and an union of value
          
+        print(stop_event.is_set())
         while not stop_event.is_set():
             try:
                 for reply in self.subscribe_response:
-                    
+   
                     value_array = reply.values
                     processedDict = self.IOHelper.ProcessGRPC(value_array)
                     self.IOHelper.WriteOutputLine(processedDict)
@@ -624,6 +631,7 @@ class IOHelper:
             
         else:
             dataLine['comments'] = ""
+        
         self.writer.writerow((dataLine))
    
     
