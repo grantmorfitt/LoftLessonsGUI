@@ -32,15 +32,18 @@ class SimulatorGUI:
         self.pilot_Lookup = [] #these are going to store the lookup tables imported from the IOHelper class/toml configs
         self.block_Lookup = []
         self.lesson_Lookup = []
+        self.maneuver_Lookup = []
         
         self.pilotCombo = None #These will store the combo boxes to be updated after files are initialized
         self.blockCombo = None
         self.lessonCombo = None
+        self.maneuverCombo = None
         
         self.recordingStatus = None
         
         self.startButton = None
         self.stopButton = None
+        self.commentEntry = None
         
         self.grpcControl = None
         self.IOHelper = IOHelper() #instance of IOhelper class
@@ -89,6 +92,13 @@ class SimulatorGUI:
         
         self.lessonCombo = ttk.Combobox(left_frame, values=self.lesson_Lookup, width=15)
         self.lessonCombo.grid(row=2, column=1, pady=2)
+        
+        maneuver_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
+        maneuver_frame.place(x=580, y=80, width=200, height=250)
+        tk.Label(maneuver_frame, text="Maneuver:").pack(anchor="w")
+        
+        self.maneuverCombo = ttk.Combobox(maneuver_frame, values=["Maneuver 1", "Maneuver 2"], width=20)
+        self.maneuverCombo.pack(pady=5)
 
         # Recorder status
         status_frame = tk.Frame(self.master, bg="white", bd=1, relief="solid")
@@ -108,11 +118,9 @@ class SimulatorGUI:
         self.log_text.pack(fill="both", expand=True)
 
         # Maneuver controls
-        maneuver_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
-        maneuver_frame.place(x=580, y=80, width=200, height=250)
+        
 
-        tk.Label(maneuver_frame, text="Maneuver:").pack(anchor="w")
-        ttk.Combobox(maneuver_frame, values=["Maneuver 1", "Maneuver 2"], width=20).pack(pady=5)
+        
 
         tk.Button(maneuver_frame, text="Start Maneuver", bg="green", fg="white", width=20, command=self.start_maneuver).pack(pady=2)
         tk.Button(maneuver_frame, text="Stop Maneuver", bg="red", fg="white", width=20, command=self.stop_maneuver).pack(pady=2)
@@ -123,7 +131,8 @@ class SimulatorGUI:
         comment_frame.pack(side="bottom", fill="x", padx=10, pady=10)
 
         tk.Label(comment_frame, text="Comment:").pack(side="left")
-        comment_entry = tk.Entry(comment_frame, width=70)
+        
+        self.commentEntry = comment_entry = tk.Entry(comment_frame, width=70)
         comment_entry.pack(side="left", padx=5)
 
         tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment).pack(side="left", padx=5)
@@ -141,6 +150,7 @@ class SimulatorGUI:
         self.pilot_Lookup = self.IOHelper.pilot_Lookup
         self.block_Lookup = self.IOHelper.block_Lookup
         self.lesson_Lookup = self.IOHelper.lesson_Lookup
+        self.maneuver_Lookup = self.IOHelper.maneuver_Lookup
         
         if (IOStatus1,IOStatus2) == (1,1):
             self.log_message("toml files loaded")
@@ -154,6 +164,7 @@ class SimulatorGUI:
         self.pilotCombo["values"] = self.pilot_Lookup
         self.blockCombo["values"] = self.block_Lookup
         self.lessonCombo["values"] = self.lesson_Lookup
+        self.maneuverCombo["values"] = self.maneuver_Lookup
         
     def start_simulation(self):
         
@@ -215,7 +226,7 @@ class SimulatorGUI:
     def add_timestamp_to_comment(self):
         """Placeholder for adding timestamp to the comment."""
         print("Time button clicked")
-        self.IOHelper.que.put("comment in da queue")
+
         
 
 
@@ -223,7 +234,10 @@ class SimulatorGUI:
     def submit_comment(self):
         """Placeholder for submitting the comment."""
         print("Submit button clicked")
-
+        
+        self.IOHelper.que.put(self.commentEntry.get())
+        
+        
     def log_message(self, message):
         """Appends a message to the recorder log."""
         now = datetime.datetime.now()
@@ -303,7 +317,7 @@ class IOHelper:
         self.pilot_Lookup = []
         self.block_Lookup = []
         self.lesson_Lookup = []
-        
+        self.maneuver_Lookup = []
         self.initialized = False
         
         self.simPaused = False
@@ -457,6 +471,8 @@ class IOHelper:
                     if (value == "Datetime"):
                        # outputVars[value] = toml_dict[value]
                         self.blankOutputFileHeader["Datetime"] = None #outputVars[value]
+                    if (value == "comments"):
+                        self.blankOutputFileHeader["comments"] = None
             return 1
         except: 
             return 0
@@ -489,6 +505,9 @@ class IOHelper:
                 if value == "lessons": 
                     for i in toml_dict[value]:
                         self.lesson_Lookup.append(i) #add each pilot to the lookup table
+                if value == "maneuvers":
+                    for i in toml_dict[value]:
+                        self.maneuver_Lookup.append(i) #add each pilot to the lookup table
                      
             return 1
         except: 
@@ -529,7 +548,7 @@ class IOHelper:
     
     def CreateOutputFile(self, pilot:str, block:str, lesson:str):
         
-        print("Placeholder for cretefile")
+        print("File created")
         currentAircraft = self.dataParameter_Lookup["aircraft_type"]
         now = datetime.datetime.now()
         current_time = now.strftime('%H.%M.%S.%f')[:-3]
@@ -547,20 +566,17 @@ class IOHelper:
         
         #need to check queue and if something is in it, add it to a comments line
 
-        #print(self.que)
-        
-        if not self.que.empty(): 
+        if self.que.qsize() != 0: 
             queData = self.que.get()
             print(f"data from que: {queData}")
-            
             dataLine['comments'] = queData
             
-        if self.que.empty():
+        else:
             dataLine['comments'] = ""
-            
-        
+                #print(dataLine)
         self.writer.writerow((dataLine))
    
+    
     def CloseFile(self):
         self.outputFile.close()
         
