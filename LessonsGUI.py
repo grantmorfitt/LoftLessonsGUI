@@ -36,6 +36,8 @@ class SimulatorGUI:
         self.blockCombo = None
         self.lessonCombo = None
         
+        self.recordingStatus = None
+        
         self.grpcControl = None
         self.IOHelper = IOHelper() #instance of IOhelper class
         self.stop_event = threading.Event() #event to stop thread recording data
@@ -83,9 +85,11 @@ class SimulatorGUI:
         status_frame = tk.Frame(self.master, bg="white", bd=1, relief="solid")
         status_frame.place(x=250, y=160, width=300, height=30)
         tk.Label(status_frame, text="Recorder Status: ", bg="white").pack(side="left")
-        tk.Label(status_frame, text="Recording", fg="green", bg="white").pack(side="left")
-        tk.Label(status_frame, text="/", bg="white").pack(side="left")
-        tk.Label(status_frame, text="Not Recording", fg="red", bg="white").pack(side="left")
+        
+        self.recordingStatus = tk.Label(status_frame, text="Not Recording", fg="red", bg="white")
+        self.recordingStatus.pack(side="left")
+
+
 
         # Recorder log
         log_frame = tk.Frame(self.master, bd=1, relief="solid")
@@ -150,7 +154,7 @@ class SimulatorGUI:
         blockSelected = self.blockCombo.get()
         lessonSelected = self.lessonCombo.get()
         
-        print(f"pilot selected: {pilotSelected} ")
+        #print(f"pilot selected: {pilotSelected} ")
         file = self.IOHelper.CreateOutputFile(pilotSelected, blockSelected, lessonSelected)
         
         self.grpcControl = GRPCControl(file, self.IOHelper)
@@ -160,12 +164,17 @@ class SimulatorGUI:
         self.recorder_thread = threading.Thread(target=self.grpcControl.SubscribeData, args=(self.stop_event,))
         self.recorder_thread.start()
         
+        self.recordingStatus['text'] = "Recording"
+        self.recordingStatus['fg'] = "green"
 
 
 
     def stop_simulation(self):
         """Placeholder for stop simulation functionality."""
         self.log_message("Simulation stopped")
+        self.recordingStatus['text'] = "Not Recording"
+        self.recordingStatus['fg'] = "red"
+        
         self.grpcControl.StopDataCapture()
         
         self.stop_event.set();
@@ -173,6 +182,7 @@ class SimulatorGUI:
         
         self.IOHelper.CloseFile()
 
+        
     def start_maneuver(self):
         """Placeholder for start maneuver functionality."""
         self.log_message("Maneuver started.")
@@ -345,7 +355,7 @@ class IOHelper:
             valueDataType = value.WhichOneof('value')
 
             state_id = value.state_id
-            print(f" STATEID:{state_id}")
+            #print(f" STATEID:{state_id}")
             #vartempName = self.dataParameter_Lookup[state_id]
             
              #This is only if notprimative
@@ -517,7 +527,7 @@ class IOHelper:
     
     def WriteOutputLine(self, dataLine: dict):
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
-        print("writing dat line")
+        #print("writing dat line")
         self.writer.writerow((dataLine))
    
     def CloseFile(self):
