@@ -44,7 +44,7 @@ class SimulatorGUI:
         self.startButton = None
         self.stopButton = None
         self.commentEntry = None
-        
+        self.timeLabel = None
         self.grpcControl = None
         self.IOHelper = IOHelper() #instance of IOhelper class
         self.stop_event = threading.Event() #event to stop thread recording data
@@ -68,10 +68,10 @@ class SimulatorGUI:
         sim_frame = tk.Frame(self.master, bg="lightgray")
         sim_frame.pack()
 
-        self.startButton = tk.Button(sim_frame, text="Start Simulation", bg="green", fg="white", width=20, command=self.start_simulation)
+        self.startButton = tk.Button(sim_frame, text="Start Simulation", bg="green", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.start_simulation)
         self.startButton.pack(pady=2)
         
-        self.stopButton = tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, command=self.stop_simulation)
+        self.stopButton = tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.stop_simulation)
         self.stopButton.pack(pady=2)
         self.stopButton['state'] = 'disable'
 
@@ -135,10 +135,12 @@ class SimulatorGUI:
         self.commentEntry = comment_entry = tk.Entry(comment_frame, width=70)
         comment_entry.pack(side="left", padx=5)
 
-        tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment).pack(side="left", padx=5)
         tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="right")
+        tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment).pack(side="right", padx=5)
 
-
+    
+        self.timeLabel = tk.Label(comment_frame, text="HH:MM:SS")
+        self.timeLabel.pack(side="right")
 
     def initialize_files(self):
         
@@ -198,7 +200,7 @@ class SimulatorGUI:
         
         self.grpcControl.StopDataCapture()
         
-        self.stop_event.set();
+        self.stop_event.set()
         self.recorder_thread.join()
         
         self.IOHelper.CloseFile()
@@ -233,17 +235,23 @@ class SimulatorGUI:
     def add_timestamp_to_comment(self):
         """Placeholder for adding timestamp to the comment."""
         print("Time button clicked")
-
+        now = datetime.datetime.now()
+        current_time = now.strftime('%H:%M:%S')
         
-
-
+        self.timeLabel['text'] = current_time
     
     def submit_comment(self):
         """Placeholder for submitting the comment."""
         print("Submit button clicked")
         
-        self.IOHelper.que.put(self.commentEntry.get())
+        time = self.timeLabel['text']
+        comment = f"COMMENT_{time} {self.commentEntry.get()}"
         
+        self.IOHelper.que.put(comment)
+        self.log_message(comment)
+
+        #self.commentEntry.delete(0, tk.END)
+        #self.timeLabel['text'] = "HH:MM:SS"
         
     def log_message(self, message):
         """Appends a message to the recorder log."""
@@ -393,9 +401,11 @@ class IOHelper:
             valueDataType = value.WhichOneof('value')
 
             state_id = value.state_id
-            #print(f" STATEID:{state_id}")
-            #vartempName = self.dataParameter_Lookup[state_id]
             
+            now = datetime.datetime.now()
+            current_time = now.strftime('%Y-%m-%d %H:%M:%S:%f')[:-3]
+            
+            outputDict_copy["Datetime"] = current_time
              #This is only if notprimative
             if ((valueDataType != "boolean_value") and (valueDataType != "int32_value") and (valueDataType != "double_value") and (valueDataType != "string_value") ):
          
@@ -535,22 +545,6 @@ class IOHelper:
         writer.writeheader()
         
         return outputFile
-        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
-    #def _CreateFile(self):
-        
-    
-        
-        # currentAircraft = self.dataParameter_Lookup["aircraft_type"]
-        # now = datetime.datetime.now()
-        # current_time = now.strftime('%H:%M:%S.%f')[:-3]
-        
-        # fileName =  f"{currentAircraft}_{current_time}.csv"
-        # outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
-        
-        
-        # self.writer = csv.DictWriter(outputFile, fieldnames=self.blankOutputFileHeader)
-        # self.writer.writeheader()
-        
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
     
     def CreateOutputFile(self, pilot:str, block:str, lesson:str):
