@@ -207,22 +207,29 @@ class SimulatorGUI:
         self.startButton['state'] = 'active'
         
     def start_maneuver(self):
-        """Placeholder for start maneuver functionality."""
-        self.log_message("Maneuver started.")
-        print("Start Maneuver button clicked")
-        
-        
+
+        maneuver_comment = f"START_{self.maneuverCombo.get()}"
+        self.log_message(maneuver_comment)
+     
+        self.IOHelper.que.put(maneuver_comment)
+        print(maneuver_comment)
 
     def stop_maneuver(self):
-        """Placeholder for stop maneuver functionality."""
-        self.log_message("Maneuver stopped.")
-        print("Stop Maneuver button clicked")
+
+        maneuver_comment = f"STOP_{self.maneuverCombo.get()}"
+        self.log_message(maneuver_comment)
+     
+        self.IOHelper.que.put(maneuver_comment)
+        print(maneuver_comment)
 
     def cancel_maneuver(self):
-        """Placeholder for cancel maneuver functionality."""
-        self.log_message("Maneuver cancelled.")
-        print("Cancel Maneuver button clicked")
 
+        maneuver_comment = f"CANCEL_{self.maneuverCombo.get()}"
+        self.log_message(maneuver_comment)
+     
+        self.IOHelper.que.put(maneuver_comment)
+        print(maneuver_comment)
+        
     def add_timestamp_to_comment(self):
         """Placeholder for adding timestamp to the comment."""
         print("Time button clicked")
@@ -568,12 +575,10 @@ class IOHelper:
 
         if self.que.qsize() != 0: 
             queData = self.que.get()
-            print(f"data from que: {queData}")
             dataLine['comments'] = queData
             
         else:
             dataLine['comments'] = ""
-                #print(dataLine)
         self.writer.writerow((dataLine))
    
     
