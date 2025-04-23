@@ -636,7 +636,7 @@ class IOHelper:
         print("File created")
         currentAircraft = self.dataParameter_Lookup["aircraft_type"]
         now = datetime.datetime.now()
-        current_time = now.strftime('%H.%M.%S.%f')[:-3]
+        current_time = now.strftime('%Y%m%d_%H%M%S')
         
         fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
         self.outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
@@ -667,10 +667,12 @@ class IOHelper:
     def DeleteFile(self) -> str:
         try:
             os.remove(self.outputFile.name)
-            return (f"File '{self.outputFile.name}' deleted successfully.")
+            basename = os.path.basename(self.outputFile.name)
+            return (f"{basename} deleted successfully.")
             
         except FileNotFoundError:
-            return(f"Error: File '{self.outputFile.name}' not found.")
+            basename = os.path.basename(self.outputFile.name)
+            return(f"Error:'{basename}' not found.")
         except Exception as e:
             return(f"An error occurred: {e}")
         
