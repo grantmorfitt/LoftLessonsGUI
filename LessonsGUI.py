@@ -44,6 +44,7 @@ class SimulatorGUI:
         self.startButton = None
         self.stopButton = None
         self.timeButton = None
+        self.deleteFileButton = None
         
         self.maneuverStopbtn = None
         self.maneuverStartbtn = None
@@ -65,8 +66,9 @@ class SimulatorGUI:
         
         self.create_widgets()
         self.initialize_files()
+        self.master.resizable(False, False)
         self.log_message("Select Parameters to Continue")
-
+        
     def create_widgets(self):
         """Creates and arranges the widgets for the GUI."""
         # Main title
@@ -75,14 +77,25 @@ class SimulatorGUI:
         # Simulation control buttons
         sim_frame = tk.Frame(self.master, bg="lightgray")
         sim_frame.pack()
-
+        
+   
         self.startButton = tk.Button(sim_frame, text="Start Simulation", bg="green", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.start_simulation)
-        self.startButton.pack(pady=2)
+        self.startButton.pack(side = "left", pady=2)
         self.startButton['state'] = 'disable'
+        
+        
         
         self.stopButton = tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.stop_simulation)
         self.stopButton.pack(pady=2)
         self.stopButton['state'] = 'disable'
+        
+        delete_frame = tk.Frame() #put delete button off to the side of the start button
+        #delete_frame.pack(fill = "x", padx = 5)
+        delete_frame.place(x=605, y=10)
+        self.deleteFileButton = tk.Button(delete_frame, text="Delete File", bg="orange", fg="white", width=20, command = self.delete_file)
+        self.deleteFileButton.pack(side = "right")
+        self.deleteFileButton['state'] = 'disable'
+       
 
         # Left panel: Pilot, Block, Lesson
         left_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
@@ -106,6 +119,8 @@ class SimulatorGUI:
         maneuver_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
         maneuver_frame.place(x=580, y=80, width=200, height=250)
         tk.Label(maneuver_frame, text="Maneuver:").pack(anchor="w")
+        
+
         
         self.maneuverCombo = ttk.Combobox(maneuver_frame, values=[""], width=20)
         self.maneuverCombo.pack(pady=5)
@@ -224,6 +239,7 @@ class SimulatorGUI:
         self.stopButton['state'] = 'normal'
         self.startButton['state'] = 'disabled'
         self.maneuverStartbtn['state'] = 'normal'
+        self.deleteFileButton['state'] = 'normal'
         
 
     def stop_simulation(self):
@@ -247,14 +263,25 @@ class SimulatorGUI:
         self.stopButton['state'] = 'disabled'
         self.startButton['state'] = 'normal'
         
-        del self.grpcControl
+        self.grpcControl = None
+    
+    def delete_file(self):
+        print("file marked for deletion")
+        self.deleteFileButton['state'] = 'disabled'
+        self.maneuverStartbtn['state'] = 'normal'
+        self.maneuverStopbtn['state'] = 'disabled'
+        self.maneuverCancelbtn['state'] = 'disabled'
+        
+        self.stop_simulation()
+        statusStr = self.IOHelper.DeleteFile()
+        self.log_message(statusStr)
         
     def start_maneuver(self):
 
         self.maneuverStartbtn['state'] = 'disabled'
         self.maneuverStopbtn['state'] = 'normal'
         self.maneuverCancelbtn['state'] = 'normal'
-        
+        self.deleteFileButton['state'] = 'normal'
         maneuver_comment = f"START_{self.maneuverCombo.get()}"
         self.log_message(maneuver_comment)
      
@@ -349,7 +376,6 @@ class GRPCControl:
                                           notify_unchanged = True,
                                           minimum_notification_interval_ms = 16)
     
-        
     def StopDataCapture(self):
         self.subscribe_response.cancel()
         
@@ -615,7 +641,7 @@ class IOHelper:
         fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
         self.outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
         
-        
+        print(self.outputFile)
         self.writer = csv.DictWriter(self.outputFile, fieldnames=self.blankOutputFileHeader)
         self.writer.writeheader()
         
@@ -637,6 +663,16 @@ class IOHelper:
     
     def CloseFile(self):
         self.outputFile.close()
+    
+    def DeleteFile(self) -> str:
+        try:
+            os.remove(self.outputFile.name)
+            return (f"File '{self.outputFile.name}' deleted successfully.")
+            
+        except FileNotFoundError:
+            return(f"Error: File '{self.outputFile.name}' not found.")
+        except Exception as e:
+            return(f"An error occurred: {e}")
         
 def main():
     """Creates the main Tkinter window and runs the application."""
