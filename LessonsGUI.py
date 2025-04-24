@@ -8,6 +8,7 @@ import StateStore_pb2_grpc as pb2_grpc
 import StateStore_pb2 as pb2
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import datetime
 import tomli
 import collections
@@ -218,8 +219,6 @@ class SimulatorGUI:
         
         if self.pilotCombo.get() and self.blockCombo.get() and self.lessonCombo.get():
             self.startButton['state'] = 'normal'
-        else:
-            print ("not all boxes are selected, womp womp")
             
         
     def start_simulation(self):
@@ -369,7 +368,7 @@ class GRPCControl:
     
     def __init__(self, IOHelperInstance):
         
-        self.host = '127.0.0.1'
+        self.host = '192.168.168.10'
         self.server_port = 5011
         # instantiate a channel
         self.channel = grpc.insecure_channel(
@@ -549,8 +548,7 @@ class IOHelper:
                 if (variableName == "Aerofly_Out_Simulation_Pause" and str(message_value) == "False"):
                     self.simPaused = False
                 
-                if (self.simPaused == False): #This is where we will write to the file after each message has been processed
-                    print("sim not paused writing lines")
+
                    
         return outputDict_copy
         
@@ -578,7 +576,6 @@ class IOHelper:
                     current_stateID = currentItem["state_id"]
                     self.dataParameter_Lookup[current_stateID] = value
                     self.blankOutputFileHeader[value] = current_description 
-                    print(f"value importing to outputfileheader: {self.blankOutputFileHeader[value]}")
                 if (isinstance(toml_dict[value],str) == True):
                     
                     if (value == "aircraft_type"):
@@ -651,10 +648,7 @@ class IOHelper:
         self.writer.writeheader()
 
         print("Header has been written")
-        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
-    
-
-        
+ 
     
     def WriteOutputLine(self, dataLine: dict):
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
@@ -667,9 +661,10 @@ class IOHelper:
             
         else:
             dataLine['comments'] = ""
-        
-        self.writer.writerow(dataLine)
-        self.outputFile.flush()
+
+        if (self.simPaused != True):
+            self.writer.writerow(dataLine)
+            self.outputFile.flush()
         
     
     def CloseFile(self):
