@@ -7,6 +7,7 @@ title = "Loft Dynamics Config"
 aircraft_type = "h125"
 
 Datetime = "" #DO NOT EDIT THIS LINE
+comments = "" #NO EDIT
 
 Aerofly_Out_Simulation_Time =  { state_id = 3871827618, description = "Simulation time from start (s)"}
 Aerofly_Out_Aircraft_Latitude =  { state_id = 2496586604, description = "Latitude (rad) (double)"} 

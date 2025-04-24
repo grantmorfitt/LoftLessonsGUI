@@ -1,2 +1,2 @@
-cd C:\Users\TestCrew\Documents\R22 Recorder Support Files
+cd C:\Users\TestCrew\Documents\LoftLessonsGUI
 python main.py 

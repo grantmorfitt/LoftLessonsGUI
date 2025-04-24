@@ -233,8 +233,7 @@ class SimulatorGUI:
         
         #print(f"pilot selected: {pilotSelected} ")
         file = self.IOHelper.CreateOutputFile(pilotSelected, blockSelected, lessonSelected)
-        
-        self.grpcControl = GRPCControl(file, self.IOHelper)
+        self.grpcControl = GRPCControl(self.IOHelper)
  
         self.grpcControl.ConnectClient()
         
@@ -368,7 +367,7 @@ class GRPCControl:
     """
     """
     
-    def __init__(self, file, IOHelperInstance):
+    def __init__(self, IOHelperInstance):
         
         self.host = '127.0.0.1'
         self.server_port = 5011
@@ -379,7 +378,6 @@ class GRPCControl:
         self.stub = pb2_grpc.StateStoreStub(self.channel)
        
         self.IOHelper = IOHelperInstance
-        self.fileOutput = file #file created and passed from IOSetup class
         self.fileHeader = self.IOHelper.blankOutputFileHeader #header for file created and passed form IOSetup class
         self.subscribe_response = None
             
@@ -553,7 +551,7 @@ class IOHelper:
                 
                 if (self.simPaused == False): #This is where we will write to the file after each message has been processed
                     print("sim not paused writing lines")
-                    print(variableName)
+                   
         return outputDict_copy
         
     
@@ -580,7 +578,7 @@ class IOHelper:
                     current_stateID = currentItem["state_id"]
                     self.dataParameter_Lookup[current_stateID] = value
                     self.blankOutputFileHeader[value] = current_description 
-                    
+                    print(f"value importing to outputfileheader: {self.blankOutputFileHeader[value]}")
                 if (isinstance(toml_dict[value],str) == True):
                     
                     if (value == "aircraft_type"):
@@ -633,7 +631,7 @@ class IOHelper:
         except: 
             return 0
         
-    def CreateOutputFile(self, pilot:str, block:str, lesson:str) -> object:
+    def CreateOutputFile(self, pilot:str, block:str, lesson:str):
         
         print("Placeholder for cretefile")
         currentAircraft = self.dataParameter_Lookup["aircraft_type"]
@@ -642,8 +640,8 @@ class IOHelper:
         
         fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
         dirname = os.path.abspath(os.getcwd())
-        filePath = os.path.join(dirname,fileName)
-    
+        filePath = os.path.join(dirname,"data", fileName)
+        print(filePath)
         
         self.outputFile = open(filePath, "w+", newline = '')
         
@@ -651,8 +649,8 @@ class IOHelper:
        # print(self.outputFile)
         self.writer = csv.DictWriter(self.outputFile, fieldnames=self.blankOutputFileHeader)
         self.writer.writeheader()
-        
-        return self.outputFile
+
+        print("Header has been written")
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
     
 
@@ -670,8 +668,9 @@ class IOHelper:
         else:
             dataLine['comments'] = ""
         
-        self.writer.writerow((dataLine))
-   
+        self.writer.writerow(dataLine)
+        self.outputFile.flush()
+        
     
     def CloseFile(self):
         self.outputFile.close()
