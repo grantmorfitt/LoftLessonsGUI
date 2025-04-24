@@ -44,7 +44,9 @@ class SimulatorGUI:
         self.startButton = None
         self.stopButton = None
         self.timeButton = None
+        self.submitButton = None
         self.deleteFileButton = None
+        self.deleteFileConfirm = None
         
         self.maneuverStopbtn = None
         self.maneuverStartbtn = None
@@ -61,7 +63,7 @@ class SimulatorGUI:
         self.master = master
         master.title("Simulator Session Data Recording")
         master.geometry("800x550")
-        master.configure(bg="lightgray")
+        master.configure(bg="white")
         
         
         self.create_widgets()
@@ -72,10 +74,10 @@ class SimulatorGUI:
     def create_widgets(self):
         """Creates and arranges the widgets for the GUI."""
         # Main title
-        tk.Label(self.master, text="Simulator Session Data Recording", font=("Arial", 16)).pack(pady=10)
+        tk.Label(self.master, text="FAA H125 Simulator Data Recorder", font=("Arial", 16)).pack(pady=10)
 
         # Simulation control buttons
-        sim_frame = tk.Frame(self.master, bg="lightgray")
+        sim_frame = tk.Frame(self.master, bg="white")
         sim_frame.pack()
         
    
@@ -88,14 +90,18 @@ class SimulatorGUI:
         self.stopButton = tk.Button(sim_frame, text="Stop Simulation", bg="red", fg="white", width=20, takefocus=False, highlightthickness = 0, command=self.stop_simulation)
         self.stopButton.pack(pady=2)
         self.stopButton['state'] = 'disable'
+       
+        #Delete and confirm options
         
         delete_frame = tk.Frame() #put delete button off to the side of the start button
         #delete_frame.pack(fill = "x", padx = 5)
         delete_frame.place(x=605, y=10)
-        self.deleteFileButton = tk.Button(delete_frame, text="Delete File", bg="orange", fg="white", width=20, command = self.delete_file)
+        self.deleteFileButton = tk.Button(delete_frame, text="Stop and Delete File", bg="violetred1", fg="white", width=20, borderwidth=3, command = self.delete_file)
         self.deleteFileButton.pack(side = "right")
         self.deleteFileButton['state'] = 'disable'
        
+        #self.deleteFileButtonConfirm = tk.Button(delete_frame, text="Confirm", bg="orange", fg="white", width=20, command = self.delete_file)
+
 
         # Left panel: Pilot, Block, Lesson
         left_frame = tk.LabelFrame(self.master, text="", padx=10, pady=10)
@@ -129,7 +135,6 @@ class SimulatorGUI:
         status_frame = tk.Frame(self.master, bg="white", bd=1, relief="solid")
         status_frame.place(x=215, y=160, width=350, height=30)
         tk.Label(status_frame, text="Recorder Status: ", bg="white").pack(side="left")
-        
         self.recordingStatus = tk.Label(status_frame, text="Not Recording", fg="red", bg="white")
         self.recordingStatus.pack(side="left")
 
@@ -160,7 +165,9 @@ class SimulatorGUI:
         self.commentEntry = comment_entry = tk.Text(comment_frame, width = 55, height = 4)
         comment_entry.pack(side="left", padx=5)
 
-        tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment).pack(side="right")
+        self.submitButton = tk.Button(comment_frame, text="Submit", bg="gray", fg="white", width=8, command=self.submit_comment)
+        self.submitButton.pack(side="right")
+        self.submitButton['state'] = 'disabled'
         self.timeButton = tk.Button(comment_frame, text="Time", bg="gray", fg="white", width=8, command=self.add_timestamp_to_comment)
         self.timeButton.pack(side="right", padx=5)
 
@@ -262,19 +269,30 @@ class SimulatorGUI:
         self.maneuverCancelbtn['state'] = 'disabled'
         self.stopButton['state'] = 'disabled'
         self.startButton['state'] = 'normal'
+        self.deleteFileButton['state'] = 'disabled'
         
         self.grpcControl = None
     
     def delete_file(self):
         print("file marked for deletion")
-        self.deleteFileButton['state'] = 'disabled'
-        self.maneuverStartbtn['state'] = 'normal'
-        self.maneuverStopbtn['state'] = 'disabled'
-        self.maneuverCancelbtn['state'] = 'disabled'
         
-        self.stop_simulation()
-        statusStr = self.IOHelper.DeleteFile()
-        self.log_message(statusStr)
+        
+        answer = self._confirm_delete()
+        
+        if answer:
+            self.deleteFileButton['state'] = 'disabled'
+            self.maneuverStartbtn['state'] = 'normal'
+            self.maneuverStopbtn['state'] = 'disabled'
+            self.maneuverCancelbtn['state'] = 'disabled'
+            self.stop_simulation()
+            statusStr = self.IOHelper.DeleteFile()
+            self.log_message(statusStr)
+        
+    def _confirm_delete(self) -> bool:
+
+        answer = tk.messagebox.askyesno(title='Confirmation: Delete File',
+                   message='Are you sure that you want to stop the simulator recording and delete this file?')
+        return answer
         
     def start_maneuver(self):
 
@@ -314,17 +332,18 @@ class SimulatorGUI:
         
     def add_timestamp_to_comment(self):
         """Placeholder for adding timestamp to the comment."""
-        print("Time button clicked")
+        self.submitButton['state'] = 'normal'
         now = datetime.datetime.now()
         current_time = now.strftime('%H:%M:%S')
         
         self.timeLabel['text'] = current_time
-        self.timeButton['state'] = 'disabled'
-    
+        self.submitButton['state'] = 'normal'
+        
     def submit_comment(self):
         """Placeholder for submitting the comment."""
         print("Submit button clicked")
-        
+        self.submitButton['state'] = 'disabled'
+
         time = self.timeLabel['text']
         commentText = self.commentEntry.get("1.0", "end-1c")
         comment = f"COMMENT_{time} {commentText}"
@@ -334,7 +353,7 @@ class SimulatorGUI:
         
         self.commentEntry.delete("1.0", tk.END)
         self.timeLabel['text'] = "HH:MM:SS"
-        self.timeButton['state'] = 'normal'
+        self.submitButton['state'] = 'disabled'
         
     def log_message(self, message):
         """Appends a message to the recorder log."""
@@ -622,28 +641,21 @@ class IOHelper:
         current_time = now.strftime('%H.%M.%S.%f')[:-3]
         
         fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
-        outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
-        
-        
-        writer = csv.DictWriter(outputFile, fieldnames=self.blankOutputFileHeader)
-        writer.writeheader()
-        
-        return outputFile
-        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+        dirname = os.path.abspath(os.getcwd())
+        filePath = os.path.join(dirname,fileName)
     
-    def CreateOutputFile(self, pilot:str, block:str, lesson:str):
         
-        print("File created")
-        currentAircraft = self.dataParameter_Lookup["aircraft_type"]
-        now = datetime.datetime.now()
-        current_time = now.strftime('%Y%m%d_%H%M%S')
+        self.outputFile = open(filePath, "w+", newline = '')
         
-        fileName =  f"{currentAircraft}_{current_time}_{pilot}_{block}_{lesson}.csv"
-        self.outputFile = open(f"C:\\Users\\gmorfitt\\Documents\\LoftLessonsGUI\\data\\{fileName}", "w+", newline = '')
         
-        print(self.outputFile)
+       # print(self.outputFile)
         self.writer = csv.DictWriter(self.outputFile, fieldnames=self.blankOutputFileHeader)
         self.writer.writeheader()
+        
+        return self.outputFile
+        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
+    
+
         
     
     def WriteOutputLine(self, dataLine: dict):
