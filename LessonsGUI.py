@@ -578,7 +578,6 @@ class IOHelper:
                     current_stateID = currentItem["state_id"]
                     self.dataParameter_Lookup[current_stateID] = value
                     self.blankOutputFileHeader[value] = current_description 
-                    print(f"value importing to outputfileheader: {self.blankOutputFileHeader[value]}")
                 if (isinstance(toml_dict[value],str) == True):
                     
                     if (value == "aircraft_type"):
@@ -651,10 +650,7 @@ class IOHelper:
         self.writer.writeheader()
 
         print("Header has been written")
-        #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
-    
-
-        
+ 
     
     def WriteOutputLine(self, dataLine: dict):
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
