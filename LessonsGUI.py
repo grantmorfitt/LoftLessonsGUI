@@ -55,7 +55,7 @@ class SimulatorGUI:
         self.commentEntry = None
         self.timeLabel = None
         self.grpcControl = None
-        self.IOHelper = IOHelper() #instance of IOhelper class
+        self.IOHelper = IOHelper(master) #instance of IOhelper class, pass in root
         self.stop_event = None
         self.recorder_thread = None
         
@@ -424,10 +424,10 @@ class GRPCControl:
     
 class IOHelper:
     """
-        Still need to input pilot and block information
+        Helper function for file creation and management
     """
     
-    def __init__ (self):
+    def __init__ (self, root): #intance will pass in root variable
         self.dataParameter_Lookup = {}
         self.blankOutputFileHeader = {}
         self.pilot_Lookup = []
@@ -444,6 +444,11 @@ class IOHelper:
         
         self.que = Queue() #make a quene for comments/manuever info. Only one instance of this class is called
                             #so this queue will be checked when writing rows
+        self.root = root
+        
+        root.protocol("WM_DELETE_WINDOW", lambda: self.OnCrashCleanup())
+
+        
         
     def GetPilots(self):
         return self.pilot_Lookup;
@@ -682,7 +687,13 @@ class IOHelper:
             return(f"Error:'{basename}' not found.")
         except Exception as e:
             return(f"An error occurred: {e}")
+      
+    def OnCrashCleanup(self):
+        self.outputFile.flush()
+        self.outputFile.close()
+        self.root.destroy()
         
+    
 def main():
     """Creates the main Tkinter window and runs the application."""
     
@@ -695,3 +706,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+    
