@@ -219,7 +219,7 @@ class SimulatorGUI:
         if self.pilotCombo.get() and self.blockCombo.get() and self.lessonCombo.get():
             self.startButton['state'] = 'normal'
         else:
-            print ("not all boxes are selected, womp womp")
+            print ("not all boxes are selected")
             
         
     def start_simulation(self):
@@ -409,7 +409,7 @@ class GRPCControl:
           #  Each return_value should be StateValue
           #  And each StateValue should have state ID and an union of value
          
-        print(stop_event.is_set())
+        #print(stop_event.is_set())
         while not stop_event.is_set():
             try:
                 for reply in self.subscribe_response:
@@ -435,18 +435,17 @@ class IOHelper:
         self.lesson_Lookup = []
         self.maneuver_Lookup = []
         self.initialized = False
-        
         self.simPaused = False
-        
         self.outputDict = {key: '' for key in self.blankOutputFileHeader} #create blank output dictionary for processing replies from server
         self.outputFile = None
         self.writer = None
-        
+        self.call_count = 0 #Will be used to print a heartbeat message to the console every so many calls
+        self.heartbeat_message_interval = 50 #Every 50 lines it will print a heartbeat message to the console
         self.que = Queue() #make a quene for comments/manuever info. Only one instance of this class is called
                             #so this queue will be checked when writing rows
         self.root = root
         
-        root.protocol("WM_DELETE_WINDOW", lambda: self.OnCrashCleanup())
+        root.protocol("WM_DELETE_WINDOW", lambda: self.OnClose())
 
         
         
@@ -556,7 +555,7 @@ class IOHelper:
                 
                 if (self.simPaused == False): #This is where we will write to the file after each message has been processed
                     print("sim not paused writing lines")
-                   
+                    
         return outputDict_copy
         
     
@@ -661,7 +660,13 @@ class IOHelper:
         #writer.writerow(outputFileVarDescriptions)#After the header, second row will give descriptions of each variable based on toml
         
         #need to check queue and if something is in it, add it to a comments line
-
+        if self.call_count >= self.heartbeat_message_interval:
+            current_time = datetime.datetime.now().strftime('%H:%M:%S')
+            print(f"{current_time} || Data Recording")
+            self.call_count = 0
+        else:
+            self.call_count += 1
+        
         if self.que.qsize() != 0: 
             queData = self.que.get()
             dataLine['comments'] = queData
@@ -688,12 +693,16 @@ class IOHelper:
         except Exception as e:
             return(f"An error occurred: {e}")
       
-    def OnCrashCleanup(self):
-        self.outputFile.flush()
-        self.outputFile.close()
+    def OnClose(self):
+        try:
+            if self.outputFile and not self.outputFile.closed:
+                self.outputFile.flush()
+                self.outputFile.close()
+                
+        except Exception as e:
+            print(f"Error while closing: {e}")
         self.root.destroy()
         
-    
 def main():
     """Creates the main Tkinter window and runs the application."""
     
